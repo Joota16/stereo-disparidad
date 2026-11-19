@@ -1,0 +1,7 @@
+{
+  "protocol": "zeromq",
+  "worker_bind": "tcp://127.0.0.1:5555",
+  "master_connect": "tcp://127.0.0.1:5555",
+  "request_timeout_ms": 30000,
+  "note": "Ejemplo solo para pruebas locales. En dos PCs, acordar IP y puerto en una LAN confiable; no exponer ZeroMQ a Internet."
+}

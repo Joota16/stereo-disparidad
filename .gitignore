@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.coverage
+.venv/
+venv/
+
+# IDE y SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Credenciales y variables locales
+.env
+.env.*
+!.env.example
+
+# Datasets externos: conservar solo placeholders y explicaciones
+/data/raw/*
+!/data/raw/.gitkeep
+/data/ground_truth/*
+!/data/ground_truth/.gitkeep
+
+# Salidas experimentales generadas
+/results/*
+!/results/.gitkeep
+/figures/*
+!/figures/.gitkeep
+
+# Artefactos temporales
+*.log
+*.tmp
+*.prof

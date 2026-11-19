@@ -1,0 +1,13 @@
+{
+  "dataset": "middlebury",
+  "scenes": ["Adirondack"],
+  "resolutions": ["quarter", "half"],
+  "window_sizes": [7, 15],
+  "d_min": 0,
+  "d_max_values": [32, 64],
+  "local_workers": [2, 4],
+  "repetitions": 10,
+  "warmup_repetitions": 2,
+  "architectures": ["sequential", "multiprocessing", "two_nodes"],
+  "note": "Ejemplo: adaptar disparidades a escala/escena y hardware. d_max es exclusivo."
+}
