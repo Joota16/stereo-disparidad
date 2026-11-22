@@ -1,4 +1,8 @@
-"""T15: maestro: calcula SAD local y remoto en paralelo y ensambla."""
+"""T18: maestro SAD distribuido con métricas de fases del lado maestro.
+
+Las medidas de enviar/conectar son duración de llamadas ZeroMQ,
+NO tiempo puro de transporte de red. Se conserva el contrato T15.
+"""
 
 import argparse
 from uuid import uuid4
@@ -13,6 +17,7 @@ from src.distributed.protocol import encode_request, decode_response
 
 
 def run_master(config):
+    overall_start = perf_counter()
     left = config["left_gray"]
     right = config["right_gray"]
     window = config.get("window_size", 5)
@@ -25,50 +30,81 @@ def run_master(config):
             or left.ndim != 2 or left.shape != right.shape
             or left.dtype != np.uint8 or right.dtype != np.uint8):
         raise ValueError("Ambas imagenes deben ser matrices 2D uint8 de igual forma")
+
     h, w = left.shape
+    t0 = perf_counter()
     parts = split_rows(h, 2, window)
     local, remote = parts
+    partition_seconds = perf_counter() - t0
+
     job_id = uuid4().hex
+    t0 = perf_counter()
     request = encode_request(
         remote,
         left[remote["halo_start"]:remote["halo_end"]],
         right[remote["halo_start"]:remote["halo_end"]],
         h, window, d_min, d_max, job_id,
     )
+    serialize_seconds = perf_counter() - t0
 
+    t0 = perf_counter()
     context = zmq.Context()
     socket = context.socket(zmq.REQ)
     socket.setsockopt(zmq.LINGER, 0)
     socket.setsockopt(zmq.SNDTIMEO, timeout)
     socket.setsockopt(zmq.RCVTIMEO, timeout)
+    socket_setup_seconds = perf_counter() - t0
+
     try:
-        start = perf_counter()
+        t0 = perf_counter()
         socket.connect(endpoint)
+        connect_call_seconds = perf_counter() - t0
+
+        t0 = perf_counter()
         socket.send_multipart(request)
+        send_call_seconds = perf_counter() - t0
+
         t0 = perf_counter()
         hs, he = local["halo_start"], local["halo_end"]
         local_disp, local_mask = compute_sad(
             left[hs:he], right[hs:he], window, d_min, d_max
         )
         local_seconds = perf_counter() - t0
-        t_wait = perf_counter()
+
+        t0 = perf_counter()
         response = socket.recv_multipart()
-        wait_seconds = perf_counter() - t_wait
+        receive_wait_seconds = perf_counter() - t0
+
+        t0 = perf_counter()
         remote_disp, remote_mask, remote_seconds = decode_response(
             response, job_id, remote, w
         )
+        response_decode_seconds = perf_counter() - t0
+
+        t0 = perf_counter()
         full_disp, full_mask = merge_rows([
             {**local, "disparity_map": local_disp, "valid_mask": local_mask},
             {**remote, "disparity_map": remote_disp, "valid_mask": remote_mask},
         ], h, w)
-        total_seconds = perf_counter() - start
+        merge_seconds = perf_counter() - t0
+
+        total_seconds = perf_counter() - overall_start
         stats = {
+            # Métricas del contrato anterior T15 (se mantienen)
             "total_seconds": total_seconds,
             "local_compute_seconds": local_seconds,
             "remote_compute_seconds": remote_seconds,
-            "receive_wait_seconds": wait_seconds,
+            "receive_wait_seconds": receive_wait_seconds,
             "request_payload_bytes": sum(map(len, request)),
             "response_payload_bytes": sum(map(len, response)),
+            # Nuevas métricas del lado maestro T18
+            "partition_seconds": partition_seconds,
+            "serialize_seconds": serialize_seconds,
+            "socket_setup_seconds": socket_setup_seconds,
+            "connect_call_seconds": connect_call_seconds,
+            "send_call_seconds": send_call_seconds,
+            "response_decode_seconds": response_decode_seconds,
+            "merge_seconds": merge_seconds,
         }
         return full_disp, full_mask, stats
     except zmq.Again as exc:
@@ -95,7 +131,7 @@ def main():
     baseline_disp, baseline_mask = compute_sad(left, right, 5, 0, 8)
     np.testing.assert_array_equal(mask, baseline_mask)
     np.testing.assert_allclose(disp, baseline_disp, atol=0, rtol=0, equal_nan=True)
-    print("T15 OK: SAD distribuido = SAD secuencial (mapa y mascara)")
+    print("T18 OK: SAD distribuido = SAD secuencial (mapa y mascara)")
     for key, value in stats.items():
         print(f"  {key}: {value:.6f}" if key.endswith("seconds") else f"  {key}: {value}")
 
