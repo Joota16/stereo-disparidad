@@ -1,9 +1,7 @@
-"""T19: pruebas repetibles de resolucion x ventana x disparidad x arquitectura (A)."""
+"""Punto de entrada principal para el benchmark experimental (T19)."""
 
-
-def main():
-    raise NotImplementedError("T19 pendiente: ejecutor experimental")
-
+import sys
+from experiments.run_benchmark_grid import main
 
 if __name__ == "__main__":
     main()
