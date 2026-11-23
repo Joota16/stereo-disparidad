@@ -3,6 +3,7 @@
 import argparse
 import csv
 from pathlib import Path
+from typing import Any, Dict, List
 
 import cv2
 import numpy as np
@@ -25,7 +26,7 @@ def disparity_to_depth(
     Formula estandar Middlebury 2014: Z = (baseline * focal) / (d + doffs).
     """
     depth = np.full(disparity.shape, np.nan, dtype=np.float32)
-    valid = np.isfinite(disparity) & (disparity > 0)
+    valid = np.isfinite(disparity) & (disparity >= 0)
     if valid_mask is not None:
         valid = valid & valid_mask
 
@@ -40,8 +41,8 @@ def disparity_to_depth(
     return depth
 
 
-def save_depth_colormap(depth_map: np.ndarray, output_path: str, max_depth_m: float = 4.0):
-    """Guarda mapa de profundidad en paleta de color normalizada en metros."""
+def save_depth_colormap(depth_map: np.ndarray, output_path: str, max_depth_m: float = 5.0):
+    """Guarda mapa de profundidad en paleta de color TURBO normalizada en metros."""
     depth_m = depth_map / 1000.0  # mm a metros
     valid = np.isfinite(depth_m) & (depth_m > 0) & (depth_m <= max_depth_m)
 
@@ -53,7 +54,7 @@ def save_depth_colormap(depth_map: np.ndarray, output_path: str, max_depth_m: fl
             norm[valid] = ((depth_m[valid] - min_d) / (max_d - min_d) * 255.0).astype(np.uint8)
 
     colored = cv2.applyColorMap(norm, cv2.COLORMAP_TURBO)
-    colored[~valid] = [0, 0, 0]  # negro en zonas sin profundidad
+    colored[~valid] = [0, 0, 0]
 
     p = Path(output_path)
     p.parent.mkdir(parents=True, exist_ok=True)
@@ -65,63 +66,79 @@ def run_quality_evaluation(
     gt_path: str = "data/ground_truth/adirondack_Q/disp0.pfm",
     out_dir: str = "results/t20_quality",
     d_max: int = 32,
-):
+    windows: List[int] = None,
+) -> List[Dict[str, Any]]:
+    if windows is None:
+        windows = [5, 9]
+
     data_path = Path(data_dir)
     out_path = Path(out_dir)
     out_path.mkdir(parents=True, exist_ok=True)
 
-    # 1. Cargar datos
+    # 1. Cargar imagenes y calibracion
     left, right = load_stereo_pair(str(data_path / "im0.png"), str(data_path / "im1.png"))
     gt_disp = read_pfm(gt_path)
 
-    # Si la imagen fue escalada a Quarter, la disparidad GT se divide por el factor
-    calib = read_calib(str(data_path / "calib.txt"))
-    scale_factor = 4.0  # Quarter
-    baseline = calib.get("baseline", 176.252)
-    focal = calib.get("cam0", np.eye(3))[0, 0] / scale_factor
-    doffs = calib.get("doffs", 0.0) / scale_factor
-
-    # Ajustar resolucion de GT si difiere
+    # Validacion estricta de dimensiones sin escalado implicito
     if gt_disp.shape != left.shape:
-        gt_disp = cv2.resize(gt_disp, (left.shape[1], left.shape[0]), interpolation=cv2.INTER_NEAREST)
-        gt_disp = gt_disp / scale_factor
+        raise ValueError(
+            f"Discrepancia de dimensiones: imagen {left.shape} vs Ground Truth {gt_disp.shape}. "
+            "Se exige que ambos conjuntos provengan de la misma resolucion derivada documentada."
+        )
+
+    # Calibracion: utilizar directamente los valores provistos en el archivo asociado
+    calib = read_calib(str(data_path / "calib.txt"))
+    baseline = float(calib.get("baseline", 176.252))
+    focal = float(calib.get("cam0", np.eye(3))[0, 0])
+    doffs = float(calib.get("doffs", 0.0))
+
+    # Analisis del rango de Ground Truth y cobertura
+    gt_valid = gt_disp[np.isfinite(gt_disp)]
+    gt_min = float(np.min(gt_valid)) if gt_valid.size > 0 else 0.0
+    gt_max = float(np.max(gt_valid)) if gt_valid.size > 0 else 1.0
 
     # Guardar referencia visual de Ground Truth
     save_disparity_colormap(gt_disp, str(out_path / "disparidad_ground_truth.png"))
     gt_depth = disparity_to_depth(gt_disp, baseline, focal, doffs)
     save_depth_colormap(gt_depth, str(out_path / "profundidad_ground_truth.png"))
 
-    # 2. Configuraciones a evaluar
-    cases = [
-        {"nombre": "SAD_K5_D32_Secuencial", "K": 5, "d_min": 0, "d_max": d_max, "modo": "secuencial"},
-        {"nombre": "SAD_K9_D32_Secuencial", "K": 9, "d_min": 0, "d_max": d_max, "modo": "secuencial"},
-        {"nombre": "SAD_K5_D32_Multiproceso4", "K": 5, "d_min": 0, "d_max": d_max, "modo": "multiproceso"},
-    ]
+    # 2. Generar casos dinamicamente a partir de los parametros
+    cases = []
+    for K in windows:
+        cases.append({"K": K, "d_min": 0, "d_max": d_max, "modo": "secuencial"})
+    cases.append({"K": windows[0], "d_min": 0, "d_max": d_max, "modo": "multiproceso_p4"})
 
     records = []
 
-    print("======================================================================")
+    print("==================================================================================")
     print(" EVALUACION DE CALIDAD Y PRECISION ESTÉREO (T20) - GROUND TRUTH")
-    print("======================================================================")
+    print(f" Rango de disparidad GT: [{gt_min:.2f}, {gt_max:.2f}] px | Pixeles validos GT: {gt_valid.size}")
+    print("==================================================================================")
 
     for c in cases:
-        print(f"\n--- Evaluando {c['nombre']} (K={c['K']}, D=[{c['d_min']}, {c['d_max']}]) ---")
-        if c["modo"] == "secuencial":
-            disp, mask = compute_sad(left, right, c["K"], c["d_min"], c["d_max"])
+        K = c["K"]
+        dm = c["d_max"]
+        mode = c["modo"]
+        nombre = f"SAD_K{K}_D{dm}_{mode}"
+
+        # Cobertura del rango de busqueda respecto al rango de la verdad de terreno
+        coverage_pct = round(min(100.0, max(0.0, (min(dm, gt_max) - c['d_min']) / (gt_max - gt_min) * 100.0)), 2)
+
+        print(f"\n--- Evaluando {nombre} (K={K}, D=[{c['d_min']}, {dm}]) | Cobertura GT: {coverage_pct}% ---")
+
+        if mode == "secuencial":
+            disp, mask = compute_sad(left, right, K, c["d_min"], dm)
         else:
-            disp, mask = compute_disparity_parallel(left, right, c["K"], c["d_min"], c["d_max"], workers=4)
+            disp, mask = compute_disparity_parallel(left, right, K, c["d_min"], dm, workers=4)
 
         metrics = evaluate_disparity(disp, mask, gt_disp, threshold=1.0)
-
-        # Calculo de profundidad
         depth = disparity_to_depth(disp, baseline, focal, doffs, valid_mask=mask)
 
-        # Guardar visualizaciones
-        slug = c["nombre"].lower()
+        # Guardar visualizaciones con nombres unicos y dinamicos
+        slug = nombre.lower()
         save_disparity_colormap(disp, str(out_path / f"disp_{slug}.png"), valid_mask=mask)
         save_depth_colormap(depth, str(out_path / f"depth_{slug}.png"))
 
-        # Mapa de error y mascara de bad pixels
         err_map = metrics["error_map"]
         save_disparity_colormap(err_map, str(out_path / f"error_map_{slug}.png"), valid_mask=np.isfinite(err_map))
 
@@ -131,10 +148,14 @@ def run_quality_evaluation(
         cv2.imwrite(str(out_path / f"bad_pixels_{slug}.png"), bad_mask)
 
         row = {
-            "configuracion": c["nombre"],
-            "ventana_K": c["K"],
-            "d_max": c["d_max"],
-            "modo": c["modo"],
+            "configuracion": nombre,
+            "ventana_K": K,
+            "d_min": c["d_min"],
+            "d_max": dm,
+            "modalidad": mode,
+            "cobertura_rango_gt_pct": coverage_pct,
+            "gt_min_px": round(gt_min, 2),
+            "gt_max_px": round(gt_max, 2),
             "mae_epe_px": round(metrics["mae"], 4),
             "rmse_px": round(metrics["rmse"], 4),
             "bad_pixel_ratio_pct": round(metrics["bad_pixel_ratio"], 2),
@@ -155,14 +176,15 @@ def run_quality_evaluation(
         writer.writeheader()
         writer.writerows(records)
 
-    print(f"\n======================================================================")
+    print(f"\n==========================================================================================================")
     print(f" TABLA COMPARATIVA DE CALIDAD (T20) (Guardada en {csv_file})")
-    print("======================================================================")
-    print(f"{'Configuracion':<28} | {'MAE (px)':<9} | {'RMSE (px)':<10} | {'Bad Pixels (%)':<15} | {'Invalid (%)':<12}")
-    print("-" * 84)
+    print("==========================================================================================================")
+    print(f"{'Configuracion':<30} | {'Cobertura GT':<12} | {'MAE (px)':<9} | {'RMSE (px)':<10} | {'Bad Pixels (%)':<15} | {'Invalid (%)':<12}")
+    print("-" * 106)
     for r in records:
-        print(f"{r['configuracion']:<28} | {r['mae_epe_px']:<9.4f} | {r['rmse_px']:<10.4f} | {r['bad_pixel_ratio_pct']:<15.2f} | {r['invalid_ratio_pct']:<12.2f}")
-    print("======================================================================")
+        print(f"{r['configuracion']:<30} | {r['cobertura_rango_gt_pct']:<10.1f} % | {r['mae_epe_px']:<9.4f} | {r['rmse_px']:<10.4f} | {r['bad_pixel_ratio_pct']:<15.2f} | {r['invalid_ratio_pct']:<12.2f}")
+    print("==========================================================================================================")
+    return records
 
 
 def main():
@@ -171,9 +193,10 @@ def main():
     parser.add_argument("--gt", default="data/ground_truth/adirondack_Q/disp0.pfm")
     parser.add_argument("--output", default="results/t20_quality")
     parser.add_argument("--d-max", type=int, default=32)
+    parser.add_argument("--windows", nargs="+", type=int, default=[5, 9])
     args = parser.parse_args()
 
-    run_quality_evaluation(args.data_dir, args.gt, args.output, args.d_max)
+    run_quality_evaluation(args.data_dir, args.gt, args.output, args.d_max, args.windows)
 
 
 if __name__ == "__main__":
