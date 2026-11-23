@@ -8,7 +8,7 @@ from pathlib import Path
 
 import numpy as np
 
-from src.common.io_utils import load_stereo_pair
+from src.common.io_utils import load_stereo_pair, save_disparity_colormap
 from src.distributed.master import run_master
 from src.distributed.worker import run_worker
 from src.stereo.sad import compute_sad
@@ -70,6 +70,13 @@ def verify_equivalence_on_pair(
 
     if max_diff > 0.0:
         raise AssertionError(f"[{case_name}] Discrepancia en mapa de disparidad: dif maxima = {max_diff:.6f} px.")
+
+    # 5. Exportar imagenes visuales de prueba
+    out_dir = Path("results/t17_distributed_equivalence")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    slug = case_name.replace(" ", "_").replace("(", "").replace(")", "").replace("=", "").replace(",", "")
+    save_disparity_colormap(disp_dist, out_dir / f"{slug}_distribuido.png", valid_mask=mask_dist)
+    save_disparity_colormap(disp_seq, out_dir / f"{slug}_secuencial.png", valid_mask=mask_seq)
 
     print(f"  Pixeles evaluados: {left_img.size} (validos: {valid_pixels})")
     print(f"  Coincidencia de mascara: 100.0% exacta")
