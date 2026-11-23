@@ -120,6 +120,7 @@ def run_benchmark_grid(
     output_runs_csv: str = "results/t19_benchmark_runs.csv",
     output_summary_csv: str = "results/t19_benchmark_summary.csv",
     counterbalance: bool = False,
+    overwrite: bool = False,
 ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     """
     Ejecuta la matriz de pruebas parametrizada, validando equivalencia por repeticion
@@ -129,13 +130,24 @@ def run_benchmark_grid(
         raise ValueError(f"El numero de repeticiones debe ser >= 1 (recibido: {reps})")
     if warmup < 0:
         raise ValueError(f"El numero de calentamientos debe ser >= 0 (recibido: {warmup})")
+    if "secuencial" not in modes:
+        raise ValueError("Se requiere la modalidad secuencial como referencia de speedup")
+    if len(set(modes)) != len(modes):
+        raise ValueError("No deben repetirse modalidades en un mismo benchmark")
 
     runs_csv_p = Path(output_runs_csv)
     summary_csv_p = Path(output_summary_csv)
-    if runs_csv_p.exists():
-        runs_csv_p.unlink()
-    if summary_csv_p.exists():
-        summary_csv_p.unlink()
+    runs_csv_p.parent.mkdir(parents=True, exist_ok=True)
+    summary_csv_p.parent.mkdir(parents=True, exist_ok=True)
+    if runs_csv_p.resolve() == summary_csv_p.resolve():
+        raise ValueError("Los CSV de repeticiones y resumen deben tener rutas diferentes")
+    meta_path = runs_csv_p.with_name(f"{runs_csv_p.stem}_metadata.json")
+    if not overwrite and any(p.exists() for p in (runs_csv_p, summary_csv_p, meta_path)):
+        raise FileExistsError("Ya existen resultados: usa otras rutas o --overwrite explicitamente")
+    if overwrite:
+        for path in (runs_csv_p, summary_csv_p):
+            if path.exists():
+                path.unlink()
 
     is_loopback = (endpoint is None) or ("127.0.0.1" in endpoint) or ("localhost" in endpoint)
     dist_mode_name = "distribuido_loopback" if is_loopback else "distribuido_lan"
@@ -168,7 +180,13 @@ def run_benchmark_grid(
     ]
 
     env_meta = get_environment_metadata()
-    meta_path = runs_csv_p.parent / "t19_benchmark_metadata.json"
+    env_meta["experiment"] = {
+        "modes": resolved_modes, "repetitions": reps, "warmup": warmup,
+        "endpoint": endpoint or "loopback local",
+        "cases": [{"name": c["name"], "K": c["K"], "d_min": c["d_min"],
+                   "d_max": c["d_max"], "shape": list(c["left"].shape)}
+                  for c in grid_configs],
+    }
     with open(meta_path, "w", encoding="utf-8") as f:
         json.dump(env_meta, f, indent=2)
 
@@ -217,11 +235,14 @@ def run_benchmark_grid(
                     disp_w, mask_w, t_w, stats_w = execute_mode(mode, left, right, K, d_min, d_max, endpoint)
                     # Validar equivalencia fuera del cronometro
                     equiv = bool(np.array_equal(mask_w, ref_mask) and np.allclose(disp_w, ref_disp, atol=0.0, rtol=0.0, equal_nan=True))
+                    if not equiv:
+                        raise AssertionError(f"Fallo equivalencia en calentamiento: {case_name}, {mode}")
                     run_record = {
                         "run_id": run_counter, "timestamp": datetime.now().isoformat(),
                         "caso": case_name, "alto": h, "ancho": w, "ventana_K": K,
                         "d_min": d_min, "d_max": d_max, "modalidad": mode,
-                        "tipo_conexion": "loopback" if is_loopback else "lan_remota",
+                        "tipo_conexion": (("loopback" if is_loopback else "lan_remota")
+                                   if mode.startswith("distribuido") else "local"),
                         "endpoint": endpoint or "n/a", "procesos": n_procs,
                         "repeticion_num": warm_i + 1, "es_calentamiento": True,
                         "tiempo_s": round(t_w, 6), "equivalente": equiv,
@@ -247,7 +268,9 @@ def run_benchmark_grid(
                     # Validacion de equivalencia estricta fuera del cronometro
                     equiv = bool(np.array_equal(mask, ref_mask) and np.allclose(disp, ref_disp, atol=0.0, rtol=0.0, equal_nan=True))
                     if not equiv:
-                        print(f"  [ERROR] ¡Fallo de equivalencia en {mode} rep {rep_i+1}!", flush=True)
+                        raise AssertionError(
+                            f"Fallo equivalencia: {case_name}, {mode}, repeticion {rep_i+1}"
+                        )
 
                     mode_times[mode].append(t_calc)
 
@@ -255,7 +278,8 @@ def run_benchmark_grid(
                         "run_id": run_counter, "timestamp": datetime.now().isoformat(),
                         "caso": case_name, "alto": h, "ancho": w, "ventana_K": K,
                         "d_min": d_min, "d_max": d_max, "modalidad": mode,
-                        "tipo_conexion": "loopback" if is_loopback else "lan_remota",
+                        "tipo_conexion": (("loopback" if is_loopback else "lan_remota")
+                                   if mode.startswith("distribuido") else "local"),
                         "endpoint": endpoint or "n/a", "procesos": n_procs,
                         "repeticion_num": rep_i + 1, "es_calentamiento": False,
                         "tiempo_s": round(t_calc, 6), "equivalente": equiv,
@@ -290,7 +314,9 @@ def run_benchmark_grid(
                 # Eficiencia solo es metodologicamente valida para CPU local homogeneo
                 if mode.startswith("distribuido"):
                     efficiency = "N/A"
-                    note = "Cluster heterogeneo PC+Laptop; eficiencia homogenea no aplicable."
+                    note = ("Control ZeroMQ loopback; no representa dos nodos fisicos."
+                            if mode == "distribuido_loopback"
+                            else "Cluster heterogeneo PC+Laptop; eficiencia homogenea no aplicable.")
                     n_procs = 2
                 elif mode == "secuencial":
                     efficiency = 1.000
@@ -304,7 +330,8 @@ def run_benchmark_grid(
                 summary_row = {
                     "caso": case_name, "alto": h, "ancho": w, "ventana_K": K,
                     "d_min": d_min, "d_max": d_max, "modalidad": mode,
-                    "tipo_conexion": "loopback" if is_loopback else "lan_remota",
+                    "tipo_conexion": (("loopback" if is_loopback else "lan_remota")
+                                   if mode.startswith("distribuido") else "local"),
                     "procesos": n_procs, "repeticiones": reps,
                     "media_s": round(t_mean, 4), "mediana_s": round(t_median, 4),
                     "desv_std_s": round(t_std, 4), "min_s": round(t_min, 4),
@@ -328,7 +355,7 @@ def build_default_grid(mode: str) -> List[Dict[str, Any]]:
         r = np.roll(l, -4, axis=1)
         return [{"name": "Sintetica_120x180 (K=5, D=16)", "K": 5, "d_min": 0, "d_max": 16, "left": l, "right": r}]
 
-    data_dir = Path("data/raw/adirondack_Q")
+    data_dir = Path("data/raw/Adirondack_Q")
     if not (data_dir / "im0.png").exists():
         raise FileNotFoundError(f"No se encontro {data_dir / 'im0.png'}")
     left, right = load_stereo_pair(str(data_dir / "im0.png"), str(data_dir / "im1.png"))
@@ -360,7 +387,8 @@ def main():
     parser.add_argument("--connect", default=None, help="Endpoint remoto (ej. tcp://IP:5555). Omita para loopback local.")
     parser.add_argument("--output-runs", default="results/t19_benchmark_runs.csv", help="CSV de ejecuciones individuales")
     parser.add_argument("--output-summary", default="results/t19_benchmark_summary.csv", help="CSV resumen estadistico")
-    parser.add_argument("--counterbalance", action="store_true", help="Alternar orden de modalidades")
+    parser.add_argument("--counterbalance", action="store_true", help="Aleatorizar el orden de bloques por configuracion")
+    parser.add_argument("--overwrite", action="store_true", help="Sobrescribir archivos de salida existentes")
     args = parser.parse_args()
 
     grid = build_default_grid(args.scope)
@@ -376,6 +404,7 @@ def main():
         output_runs_csv=args.output_runs,
         output_summary_csv=args.output_summary,
         counterbalance=args.counterbalance,
+        overwrite=args.overwrite,
     )
 
     print(f"\n=========================================================================================")

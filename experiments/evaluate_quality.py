@@ -61,15 +61,33 @@ def save_depth_colormap(depth_map: np.ndarray, output_path: str, max_depth_m: fl
     cv2.imwrite(str(p), colored)
 
 
+def ground_truth_range_coverage(ground_truth: np.ndarray, d_min: int, d_max: int) -> float:
+    """Porcentaje de GT valido con disparidades en [d_min, d_max)."""
+    if d_max <= d_min:
+        raise ValueError("d_max debe ser mayor que d_min")
+    valid = np.isfinite(ground_truth) & (ground_truth >= 0)
+    total = int(np.count_nonzero(valid))
+    if total == 0:
+        raise ValueError("Ground truth sin pixeles validos no negativos")
+    covered = int(np.count_nonzero(
+        valid & (ground_truth >= d_min) & (ground_truth < d_max)
+    ))
+    return 100.0 * covered / total
+
+
 def run_quality_evaluation(
-    data_dir: str = "data/raw/adirondack_Q",
-    gt_path: str = "data/ground_truth/adirondack_Q/disp0.pfm",
+    data_dir: str = "data/raw/Adirondack_Q",
+    gt_path: str = "data/ground_truth/Adirondack_Q/disp0.pfm",
     out_dir: str = "results/t20_quality",
     d_max: int = 32,
     windows: List[int] = None,
 ) -> List[Dict[str, Any]]:
     if windows is None:
         windows = [5, 9]
+    if not windows or any(k < 1 or k % 2 == 0 for k in windows):
+        raise ValueError("Se requiere al menos una ventana impar positiva")
+    if d_max <= 0:
+        raise ValueError("d_max debe ser positivo")
 
     data_path = Path(data_dir)
     out_path = Path(out_dir)
@@ -93,7 +111,7 @@ def run_quality_evaluation(
     doffs = float(calib.get("doffs", 0.0))
 
     # Analisis del rango de Ground Truth y cobertura
-    gt_valid = gt_disp[np.isfinite(gt_disp)]
+    gt_valid = gt_disp[np.isfinite(gt_disp) & (gt_disp >= 0)]
     gt_min = float(np.min(gt_valid)) if gt_valid.size > 0 else 0.0
     gt_max = float(np.max(gt_valid)) if gt_valid.size > 0 else 1.0
 
@@ -122,7 +140,7 @@ def run_quality_evaluation(
         nombre = f"SAD_K{K}_D{dm}_{mode}"
 
         # Cobertura del rango de busqueda respecto al rango de la verdad de terreno
-        coverage_pct = round(min(100.0, max(0.0, (min(dm, gt_max) - c['d_min']) / (gt_max - gt_min) * 100.0)), 2)
+        coverage_pct = round(ground_truth_range_coverage(gt_disp, c["d_min"], dm), 2)
 
         print(f"\n--- Evaluando {nombre} (K={K}, D=[{c['d_min']}, {dm}]) | Cobertura GT: {coverage_pct}% ---")
 
@@ -131,7 +149,10 @@ def run_quality_evaluation(
         else:
             disp, mask = compute_disparity_parallel(left, right, K, c["d_min"], dm, workers=4)
 
-        metrics = evaluate_disparity(disp, mask, gt_disp, threshold=1.0)
+        metrics = evaluate_disparity(
+            disp, mask, gt_disp,
+            gt_mask=np.isfinite(gt_disp) & (gt_disp >= 0), threshold=1.0
+        )
         depth = disparity_to_depth(disp, baseline, focal, doffs, valid_mask=mask)
 
         # Guardar visualizaciones con nombres unicos y dinamicos
@@ -189,8 +210,8 @@ def run_quality_evaluation(
 
 def main():
     parser = argparse.ArgumentParser(description="Evaluacion de calidad estéreo y mapas de error (T20)")
-    parser.add_argument("--data-dir", default="data/raw/adirondack_Q")
-    parser.add_argument("--gt", default="data/ground_truth/adirondack_Q/disp0.pfm")
+    parser.add_argument("--data-dir", default="data/raw/Adirondack_Q")
+    parser.add_argument("--gt", default="data/ground_truth/Adirondack_Q/disp0.pfm")
     parser.add_argument("--output", default="results/t20_quality")
     parser.add_argument("--d-max", type=int, default=32)
     parser.add_argument("--windows", nargs="+", type=int, default=[5, 9])
