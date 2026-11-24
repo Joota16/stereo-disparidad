@@ -1,4 +1,4 @@
-"""T15: trabajador ZeroMQ, ejecuta SAD sobre franjas con halos."""
+"""Trabajador ZeroMQ para computar SAD sobre franjas con halos."""
 
 import argparse
 from time import perf_counter

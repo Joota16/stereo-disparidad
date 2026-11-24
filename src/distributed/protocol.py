@@ -1,4 +1,4 @@
-"""Protocolo T15: JSON de metadatos + buffers binarios NumPy."""
+"""Protocolo de comunicacion: metadatos JSON y buffers binarios NumPy."""
 
 import json
 import numpy as np

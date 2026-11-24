@@ -1,4 +1,4 @@
-"""Pruebas unitarias T15 y equivalencia extremo a extremo por loopback."""
+"""Pruebas unitarias para comunicacion distribuida y loopback."""
 
 import socket
 import threading

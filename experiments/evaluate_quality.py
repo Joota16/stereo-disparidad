@@ -1,4 +1,4 @@
-"""Evaluacion formal de calidad estéreo, mapas de error y mapas de profundidad (T20)."""
+"""Evaluacion de calidad estéreo, mapas de error y mapas de profundidad."""
 
 import argparse
 import csv
@@ -129,7 +129,7 @@ def run_quality_evaluation(
     records = []
 
     print("==================================================================================")
-    print(" EVALUACION DE CALIDAD Y PRECISION ESTÉREO (T20) - GROUND TRUTH")
+    print(" EVALUACION DE CALIDAD Y PRECISION ESTÉREO - GROUND TRUTH")
     print(f" Rango de disparidad GT: [{gt_min:.2f}, {gt_max:.2f}] px | Pixeles validos GT: {gt_valid.size}")
     print("==================================================================================")
 
@@ -198,7 +198,7 @@ def run_quality_evaluation(
         writer.writerows(records)
 
     print(f"\n==========================================================================================================")
-    print(f" TABLA COMPARATIVA DE CALIDAD (T20) (Guardada en {csv_file})")
+    print(f" TABLA COMPARATIVA DE CALIDAD (Guardada en {csv_file})")
     print("==========================================================================================================")
     print(f"{'Configuracion':<30} | {'Cobertura GT':<12} | {'MAE (px)':<9} | {'RMSE (px)':<10} | {'Bad Pixels (%)':<15} | {'Invalid (%)':<12}")
     print("-" * 106)
@@ -209,7 +209,7 @@ def run_quality_evaluation(
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Evaluacion de calidad estéreo y mapas de error (T20)")
+    parser = argparse.ArgumentParser(description="Evaluacion de calidad estéreo y mapas de error ")
     parser.add_argument("--data-dir", default="data/raw/Adirondack_Q")
     parser.add_argument("--gt", default="data/ground_truth/Adirondack_Q/disp0.pfm")
     parser.add_argument("--output", default="results/t20_quality")

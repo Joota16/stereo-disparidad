@@ -1,4 +1,4 @@
-"""Pruebas T21, sin lanzar benchmarks costosos."""
+"""Pruebas para calculo de metricas y analisis de rendimiento."""
 import numpy as np
 import pandas as pd
 import pytest

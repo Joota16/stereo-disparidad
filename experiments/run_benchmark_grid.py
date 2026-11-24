@@ -1,4 +1,4 @@
-"""Automatizacion, reproduccion y trazabilidad de benchmark de disparidad estereo (T19)."""
+"""Ejecutor de benchmarks de disparidad estereo."""
 
 import argparse
 import csv
@@ -380,7 +380,7 @@ def build_default_grid(mode: str) -> List[Dict[str, Any]]:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Ejecutor de Benchmark Grid Parametrizado (T19)")
+    parser = argparse.ArgumentParser(description="Ejecutor de benchmark parametrizado")
     parser.add_argument("--scope", choices=["quick", "pilot", "formal"], default="pilot", help="Alcance de la rejilla")
     parser.add_argument("--reps", type=int, default=3, help="Repeticiones medidas (formal=10)")
     parser.add_argument("--warmup", type=int, default=1, help="Corridas de calentamiento descartadas")

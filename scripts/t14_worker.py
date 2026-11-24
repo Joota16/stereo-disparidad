@@ -1,5 +1,5 @@
 
-"""T14: receptor ZeroMQ de prueba. No ejecuta SAD."""
+"""Receptor ZeroMQ para prueba de conexion."""
 
 import argparse
 import json

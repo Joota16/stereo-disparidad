@@ -1,4 +1,4 @@
-"""T18: la instrumentación conserva equivalencia y genera tiempos válidos."""
+"""Pruebas de instrumentacion de tiempos y preservacion de equivalencia."""
 
 import socket
 import threading

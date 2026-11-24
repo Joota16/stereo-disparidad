@@ -1,11 +1,6 @@
-"""T21: analisis reproducible de rendimiento SAD local y distribuido.
+"""Analisis de rendimiento y calculo de speedup.
 
-Lee el CSV individual de T19 (no el CSV resumen). No extrapola un umbral
-ni confunde loopback con un segundo nodo fisico.
-
-Ejemplo:
-    python -m experiments.analyze_t21 --runs results/t19_benchmark_runs.csv \
-        --output results/t21
+Procesa el CSV de corridas individuales y genera resumen estadistico y graficos.
 """
 
 import argparse
@@ -39,7 +34,7 @@ def analyze_runs(runs: pd.DataFrame, include_loopback: bool = False) -> pd.DataF
     """
     missing = sorted(set(REQUIRED_COLS) - set(runs.columns))
     if missing:
-        raise ValueError(f"Faltan columnas T19: {', '.join(missing)}")
+        raise ValueError(f"Faltan columnas requeridas: {', '.join(missing)}")
 
     df = runs.copy()
     df["es_calentamiento"] = parse_bool(df["es_calentamiento"], "es_calentamiento")
@@ -50,7 +45,7 @@ def analyze_runs(runs: pd.DataFrame, include_loopback: bool = False) -> pd.DataF
 
     if not df["equivalente"].all():
         bad = df.loc[~df["equivalente"], ["caso", "modalidad"]].head(3)
-        raise ValueError(f"T19 contiene ejecuciones sin equivalencia: {bad.to_dict('records')}")
+        raise ValueError(f"Existen ejecuciones sin equivalencia: {bad.to_dict('records')}")
 
     df["tiempo_s"] = pd.to_numeric(df["tiempo_s"], errors="coerce")
     if (df["tiempo_s"].isna() | ~np.isfinite(df["tiempo_s"]) |
@@ -172,9 +167,9 @@ def create_figures(summary: pd.DataFrame, output: Path) -> None:
 def write_conclusions(summary: pd.DataFrame, crossovers: pd.DataFrame,
                       notes: List[str], output: Path, included_loopback: bool) -> None:
     lines = [
-        "# T21 — Análisis de rendimiento SAD",
+        "# Analisis de rendimiento SAD",
         "",
-        "Las cifras proceden del CSV individual de T19; se excluyen los calentamientos.",
+        "Las cifras proceden de las corridas medidas; se excluyen los calentamientos.",
         "El speedup se obtiene de la mediana secuencial y la mediana de cada modalidad",
         "para la misma configuración. La eficiencia es speedup/procesos SOLO para CPU",
         "local homogénea (p2 y p4). No se atribuye eficiencia homogénea a dos nodos.",
@@ -210,8 +205,8 @@ def write_conclusions(summary: pd.DataFrame, crossovers: pd.DataFrame,
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="T21 — speedup, eficiencia local y cruce observado")
-    parser.add_argument("--runs", required=True, help="CSV de repeticiones generado por T19")
+    parser = argparse.ArgumentParser(description="Analisis de speedup y eficiencia local")
+    parser.add_argument("--runs", required=True, help="CSV de repeticiones medido")
     parser.add_argument("--output", default="results/t21", help="Carpeta de salidas")
     parser.add_argument("--include-loopback", action="store_true", help="Incluir control loopback, nunca como LAN real")
     args = parser.parse_args()
@@ -230,7 +225,7 @@ def main() -> None:
         cross.to_csv(output / "t21_cruces_observados.csv", index=False, encoding="utf-8")
     write_conclusions(summary, cross, notes, output, args.include_loopback)
     create_figures(summary, output)
-    print(f"T21: {len(summary)} resultados por configuración y arquitectura")
+    print(f"{len(summary)} resultados por configuracion y arquitectura")
     print(f"Cruces observados: {len(cross)} (no se interpola umbral exacto)")
     print(f"Archivos generados: {output.resolve()}")
 

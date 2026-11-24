@@ -1,4 +1,4 @@
-"""T11: particion y ensamblado por franjas horizontales con halos (Jhunior)."""
+"""Particion y ensamblado por franjas horizontales con halos."""
 import numpy as np
 
 

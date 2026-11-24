@@ -1,4 +1,4 @@
-"""Pruebas automatizadas de equivalencia numerica distribuida vs secuencial (T17)."""
+"""Pruebas de equivalencia numerica distribuida vs secuencial."""
 
 import socket
 import threading

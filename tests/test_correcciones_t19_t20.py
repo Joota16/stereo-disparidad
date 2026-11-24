@@ -1,4 +1,4 @@
-"""Pruebas de regresion para las correcciones de T19 y T20."""
+"""Pruebas de regresion para benchmarks y evaluacion de calidad."""
 
 import numpy as np
 import pytest

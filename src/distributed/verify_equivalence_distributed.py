@@ -1,4 +1,4 @@
-"""Verificacion formal de equivalencia numerica entre SAD distribuido y secuencial (T17)."""
+"""Verificacion de equivalencia numerica entre SAD distribuido y secuencial."""
 
 import argparse
 import socket
@@ -99,7 +99,7 @@ def verify_equivalence_on_pair(
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Verificacion de equivalencia distribuida vs secuencial (T17)")
+    parser = argparse.ArgumentParser(description="Verificacion de equivalencia distribuida vs secuencial ")
     parser.add_argument("--connect", default=None, help="Endpoint del trabajador remoto (ej. tcp://192.168.1.50:5555). Si se omite, se usa trabajador local.")
     args = parser.parse_args()
 
@@ -140,7 +140,7 @@ def main():
         right_img = np.roll(left_img, -6, axis=1)
 
     print("======================================================================")
-    print(" VERIFICACION DE EQUIVALENCIA DISTRIBUIDA (T17) - LÍNEA BASE VS ZEROMQ")
+    print(" VERIFICACION DE EQUIVALENCIA DISTRIBUIDA - LINEA BASE VS ZEROMQ")
     print("======================================================================")
 
     results = []
@@ -160,7 +160,7 @@ def main():
         worker_thread.join(timeout=5.0)
 
     print("\n======================================================================")
-    print(" RESUMEN FINAL DE EQUIVALENCIA (T17)")
+    print(" RESUMEN FINAL DE EQUIVALENCIA")
     print("======================================================================")
     print(f"{'Configuracion':<30} | {'Mascara':<10} | {'Dif Max (px)':<14} | {'Estado':<10}")
     print("-" * 72)

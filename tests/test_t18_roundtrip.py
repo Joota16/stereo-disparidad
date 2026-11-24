@@ -1,4 +1,4 @@
-"""Verifica el experimento de control ZeroMQ sin ejecutar SAD."""
+"""Pruebas de latencia y comunicacion ZeroMQ sin procesamiento."""
 
 import socket
 import threading

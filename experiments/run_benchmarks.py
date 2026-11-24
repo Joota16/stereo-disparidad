@@ -1,4 +1,4 @@
-"""Punto de entrada principal para el benchmark experimental (T19)."""
+"""Punto de entrada para el benchmark experimental."""
 
 import sys
 from experiments.run_benchmark_grid import main

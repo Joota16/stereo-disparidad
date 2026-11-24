@@ -1,11 +1,4 @@
-"""Prepare derived Half and Quarter images from a Middlebury 2014 full-size scene.
-
-Run from repository root:
-    python -m experiments.prepare_middlebury --scene Adirondack
-
-The resulting H and Q products are locally derived, NOT official Middlebury
-H/Q benchmark files. Invalid ground-truth pixels remain invalid.
-"""
+"""Prepara imagenes en resolucion Quarter y Half a partir del par estéreo de Middlebury."""
 
 import argparse
 import json
@@ -20,7 +13,7 @@ from src.common.io_utils import read_calib, read_pfm
 
 
 def save_pfm(path: Path, disparity: np.ndarray) -> None:
-    """Write one-channel PFM (float32, little endian, bottom-up)."""
+    """Guarda mapa de disparidad en formato PFM."""
     if disparity.ndim != 2:
         raise ValueError("Se requiere un mapa de disparidad 2D")
     height, width = disparity.shape
@@ -31,7 +24,7 @@ def save_pfm(path: Path, disparity: np.ndarray) -> None:
 
 
 def scale_ground_truth(gt: np.ndarray, size: tuple[int, int], factor: float) -> np.ndarray:
-    """Area downsampling, excluding unknown GT; reject mixed valid/invalid pixels."""
+    """Escala el ground truth a menor resolucion filtrando zonas invalidas."""
     valid = np.isfinite(gt)
     weighted_sum = cv2.resize(
         np.where(valid, gt, 0).astype(np.float32),

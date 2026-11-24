@@ -1,8 +1,4 @@
-"""
-T13: Script de verificación exhaustiva de equivalencia matemática entre
-la versión secuencial (SAD 1 hilo) y la versión paralela local (multiprocessing).
-Comprueba coincidencia exacta de mapas y máscaras bajo múltiples configuraciones.
-"""
+"""Verifica la equivalencia numerica exacta entre la version secuencial y multiproceso."""
 
 from pathlib import Path
 import argparse
@@ -28,7 +24,7 @@ def check_sequential_parallel_equivalence(
     height, width = left_gray.shape
 
     print("=" * 65)
-    print("VERIFICACIÓN DE EQUIVALENCIA: SECUENCIAL VS MULTIPROCESO (T13)")
+    print("VERIFICACION DE EQUIVALENCIA: SECUENCIAL VS MULTIPROCESO")
     print(f"Dimensiones de imagen: {width}x{height}")
     print("=" * 65)
 
@@ -97,7 +93,7 @@ def check_sequential_parallel_equivalence(
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Verificacion T13 de equivalencia secuencial vs multiproceso")
+    parser = argparse.ArgumentParser(description="Verificacion de equivalencia secuencial vs multiproceso")
     parser.add_argument("--left", default="data/raw/adirondack_Q/im0.png")
     parser.add_argument("--right", default="data/raw/adirondack_Q/im1.png")
     parser.add_argument("--out", default="results/t13_equivalence")

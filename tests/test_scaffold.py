@@ -1,4 +1,4 @@
-"""Pruebas iniciales del repositorio, NO del rendimiento ni correctitud de SAD."""
+"""Pruebas basicas de estructura y componentes del proyecto."""
 
 from inspect import signature
 from pathlib import Path

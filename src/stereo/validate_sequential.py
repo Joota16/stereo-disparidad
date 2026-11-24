@@ -1,6 +1,6 @@
 """
-Script para validar la salida secuencial frente al ground truth (T10).
-Genera mapa de error, métricas MAE/RMSE y visualizaciones.
+Valida la salida secuencial frente al ground truth.
+Genera mapa de error, metricas MAE/RMSE y visualizaciones.
 """
 
 from pathlib import Path
@@ -29,7 +29,7 @@ def run_sequential_validation(left_path, right_path, gt_path, window_size=9, d_m
     metrics = evaluate_disparity(disp_pred, valid_mask, gt)
 
     print("\n" + "=" * 40)
-    print("RESULTADOS DE VALIDACIÓN FRENTE A GROUND TRUTH (T10)")
+    print("RESULTADOS DE VALIDACION FRENTE A GROUND TRUTH")
     print("=" * 40)
     print(f"Total píxeles:          {metrics['total_pixels']}")
     print(f"Píxeles evaluados:      {metrics['evaluated_pixels']} ({metrics['evaluated_pixels'] / metrics['total_pixels'] * 100:.2f}%)")
@@ -54,7 +54,7 @@ def run_sequential_validation(left_path, right_path, gt_path, window_size=9, d_m
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Validacion T10 de SAD secuencial frente a Ground Truth")
+    parser = argparse.ArgumentParser(description="Validacion de SAD secuencial frente a Ground Truth")
     parser.add_argument("--left", default="data/raw/adirondack_Q/im0.png")
     parser.add_argument("--right", default="data/raw/adirondack_Q/im1.png")
     parser.add_argument("--gt", default="data/ground_truth/adirondack_Q/disp0.pfm")

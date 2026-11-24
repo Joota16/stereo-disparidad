@@ -1,4 +1,4 @@
-"""T12: ejecucion paralela local del algoritmo SAD."""
+"""Ejecucion paralela en memoria compartida del algoritmo SAD."""
 
 from concurrent.futures import ProcessPoolExecutor
 from multiprocessing import get_context

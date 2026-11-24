@@ -1,12 +1,4 @@
-"""Ejecutor único para reproducir la matriz ROI de SAD (T19-T21).
-
-Ejecución desde la raíz del repositorio (Windows):
-    python -m experiments.run_roi_study --resolution Q --k 7 --d-max 32 \
-        --connect tcp://IP_LAPTOP:5555 --reps 10 --warmup 1
-
-No modifica los algoritmos de SAD. Requiere las imágenes Middlebury derivadas
-localmente y un trabajador ZeroMQ activo para el modo LAN.
-"""
+"""Ejecutor para la matriz ROI de SAD."""
 from __future__ import annotations
 
 import argparse

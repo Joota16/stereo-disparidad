@@ -1,5 +1,5 @@
 
-"""T14: emisor ZeroMQ de prueba. No ejecuta SAD."""
+"""Emisor ZeroMQ para prueba de conexion."""
 
 import argparse
 import json
@@ -80,7 +80,7 @@ def main():
         )
 
         print(
-            "T14 OK: matrices enviadas "
+            "OK: matrices enviadas "
             "y resultado remoto validado."
         )
         print("Forma:", remote_result.shape)

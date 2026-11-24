@@ -1,12 +1,4 @@
-"""T22: consolidación Quarter K7/K15, D32/D64 (T19-T21 y T20).
-
-Colocar en experiments/t22_consolidar_resultados_v2.py y ejecutar desde la raíz:
-    python -m experiments.t22_consolidar_resultados_v2
-
-Lee los punteros y CSV existentes; nunca modifica ni borra datos de origen.
-Genera una carpeta nueva identificada por fecha, con validaciones, tablas,
-figuras y manifiesto de procedencia SHA-256.
-"""
+"""Consolidacion de resultados experimentales en resolucion Quarter."""
 from __future__ import annotations
 
 import hashlib
@@ -146,7 +138,7 @@ def load_quality() -> tuple[pd.DataFrame, pd.DataFrame, list[Path]]:
     for (k, d), name in QUALITY.items():
         p = Path(name)
         if not p.is_file():
-            raise FileNotFoundError(f"Falta T20: {p}")
+            raise FileNotFoundError(f"Falta archivo de calidad: {p}")
         data = pd.read_csv(p)
         missing = set(columns) - set(data.columns)
         if missing:
@@ -240,7 +232,7 @@ def charts(summary: pd.DataFrame, full: pd.DataFrame, quality: pd.DataFrame,
     lan = full[(full["modalidad"] == "distribuido_lan") & ~full["es_calentamiento"]].copy()
     for column in ("local_compute_s", "remote_compute_s", "receive_wait_s"):
         if column not in lan.columns:
-            raise ValueError(f"Falta etapa T18: {column}")
+            raise ValueError(f"Falta columna de etapa: {column}")
         lan[column] = pd.to_numeric(lan[column], errors="raise")
     for k in (7, 15):
         sub = lan[lan["ventana_K"] == k]
@@ -278,7 +270,7 @@ def charts(summary: pd.DataFrame, full: pd.DataFrame, quality: pd.DataFrame,
         ax.bar_label(bars, fmt="%.2f", padding=3)
         ax.set_xticks(xc, labels)
         ax.set_ylabel(unit)
-        ax.set_title(f"T20 | {title} | Adirondack Quarter")
+        ax.set_title(f"{title} | Adirondack Quarter")
         ax.grid(axis="y", alpha=.2)
         ax.set_axisbelow(True)
         ax.set_ylim(0, float(seq[col].max()) * 1.19)
@@ -297,7 +289,7 @@ def charts(summary: pd.DataFrame, full: pd.DataFrame, quality: pd.DataFrame,
             ax.bar_label(bars, fmt="%.2f", padding=2)
         ax.set_xticks(np.arange(2), ["GT [0,32)", "GT [32,64)"])
         ax.set_ylabel("MAE (píxeles)")
-        ax.set_title("T20 | Error por intervalo GT | solo K7")
+        ax.set_title("Error por intervalo GT | solo K7")
         ax.grid(axis="y", alpha=.2)
         ax.set_axisbelow(True)
         ax.legend()
@@ -361,7 +353,7 @@ def main():
     )
     pointer = Path("results/t22_ultimo_v2.txt")
     pointer.write_text(str(out), encoding="utf-8")
-    print("T22 V2 COMPLETADO")
+    print("Consolidacion completada")
     print(f"Mediciones: {manifest['mediciones']} | Calentamientos: {manifest['calentamientos_registrados']}")
     print(f"Filas agregadas: {len(summary)} | Figuras: {manifest['archivos_png']}")
     print(f"Todas equivalentes: {manifest['equivalencia']}")

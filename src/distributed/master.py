@@ -1,8 +1,4 @@
-"""T18: maestro SAD distribuido con métricas de fases del lado maestro.
-
-Las medidas de enviar/conectar son duración de llamadas ZeroMQ,
-NO tiempo puro de transporte de red. Se conserva el contrato T15.
-"""
+"""Nodo maestro ZeroMQ para distribucion de franjas y ensamblado del mapa."""
 
 import argparse
 from uuid import uuid4
@@ -90,14 +86,14 @@ def run_master(config):
 
         total_seconds = perf_counter() - overall_start
         stats = {
-            # Métricas del contrato anterior T15 (se mantienen)
+            # Metricas basicas
             "total_seconds": total_seconds,
             "local_compute_seconds": local_seconds,
             "remote_compute_seconds": remote_seconds,
             "receive_wait_seconds": receive_wait_seconds,
             "request_payload_bytes": sum(map(len, request)),
             "response_payload_bytes": sum(map(len, response)),
-            # Nuevas métricas del lado maestro T18
+            # Metricas de fases y comunicacion
             "partition_seconds": partition_seconds,
             "serialize_seconds": serialize_seconds,
             "socket_setup_seconds": socket_setup_seconds,
@@ -131,7 +127,7 @@ def main():
     baseline_disp, baseline_mask = compute_sad(left, right, 5, 0, 8)
     np.testing.assert_array_equal(mask, baseline_mask)
     np.testing.assert_allclose(disp, baseline_disp, atol=0, rtol=0, equal_nan=True)
-    print("T18 OK: SAD distribuido = SAD secuencial (mapa y mascara)")
+    print("SAD distribuido = SAD secuencial (mapa y mascara)")
     for key, value in stats.items():
         print(f"  {key}: {value:.6f}" if key.endswith("seconds") else f"  {key}: {value}")
 

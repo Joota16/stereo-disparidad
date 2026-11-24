@@ -1,4 +1,4 @@
-"""Pruebas unitarias para evaluacion de calidad y conversion a profundidad (T20)."""
+"""Pruebas unitarias para evaluacion de calidad y conversion a profundidad."""
 
 import numpy as np
 import pytest

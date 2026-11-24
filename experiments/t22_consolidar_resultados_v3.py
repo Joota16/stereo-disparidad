@@ -1,13 +1,4 @@
-"""T22 V3: cierre experimental Quarter + Half y calidad con mascara comun.
-
-Requiere `experiments/t22_consolidar_resultados_v2.py` sin modificar.
-Ejecutar desde la raiz del repositorio (Windows):
-    python -m experiments.t22_consolidar_resultados_v3
-
-No sobrescribe los archivos originales ni las salidas de T22 V2.
-La combinacion de Quarter y Half se limita a reportar resultados observados;
-no atribuye su diferencia exclusivamente a la resolucion.
-"""
+"""Consolidacion final de resultados experimentales Quarter y Half."""
 from __future__ import annotations
 
 import json
@@ -236,7 +227,7 @@ def main() -> None:
     }
     (out/"t22_manifiesto.json").write_text(json.dumps(manifest,indent=2,ensure_ascii=False)+"\n",encoding="utf-8")
     (Path("results")/"t22_ultimo_v3.txt").write_text(str(out),encoding="utf-8")
-    print("T22 V3 COMPLETADO")
+    print("Consolidacion completada")
     print(f"Mediciones: {manifest['mediciones']} | Calentamientos: {manifest['calentamientos']}")
     print(f"Filas resumen: {manifest['filas_resumen']} | Calidad común: {manifest['calidad_mascara_comun_filas']}")
     print(f"Figuras: {manifest['figuras']} | Eq: {manifest['equivalencia_exacta']} | Cruces LAN > 1: {crossing}")

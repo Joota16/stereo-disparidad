@@ -1,4 +1,4 @@
-"""Herramienta de diagnostico de red y verificacion de handshake ZeroMQ (T16)."""
+"""Diagnostico de red y verificacion de handshake ZeroMQ."""
 
 import argparse
 import sys
@@ -67,7 +67,7 @@ def run_client(connect_addr: str, timeout_ms: int = 5000):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Diagnostico de conexion ZeroMQ para nodos distribuidos (T16)")
+    parser = argparse.ArgumentParser(description="Diagnostico de conexion ZeroMQ para nodos distribuidos ")
     parser.add_argument("--mode", choices=["server", "client"], required=True, help="Modo de ejecucion: server o client")
     parser.add_argument("--bind", default="tcp://0.0.0.0:5555", help="Direccion bind para modo server")
     parser.add_argument("--connect", default="tcp://127.0.0.1:5555", help="Direccion connect para modo client")

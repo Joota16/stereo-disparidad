@@ -1,9 +1,4 @@
-"""T18: control de costo ZeroMQ sin computo SAD.
-
-Mantiene el formato binario de la solicitud y respuesta SAD real, pero la
-laptop genera un mapa vacio en lugar de calcular SAD.
-No estima latencia pura de red: incluye trabajo de protocolo y sockets.
-"""
+"""Medicion de latencia y costo de comunicacion ZeroMQ sin computo SAD."""
 
 import argparse
 import csv
@@ -34,7 +29,7 @@ def run_echo_worker(bind, max_requests=None, ready_event=None):
         sock.bind(bind)
         if ready_event is not None:
             ready_event.set()
-        print(f"T18 control SIN SAD: trabajador escuchando en {bind}", flush=True)
+        print(f"Control sin SAD: trabajador escuchando en {bind}", flush=True)
         while max_requests is None or count < max_requests:
             frames = sock.recv_multipart()
             try:
@@ -121,7 +116,7 @@ def main():
         try:
             run_echo_worker(args.bind)
         except KeyboardInterrupt:
-            print("Control T18 detenido")
+            print("Control detenido")
         return
 
     results = measure_roundtrip(

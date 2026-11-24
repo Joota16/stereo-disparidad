@@ -1,4 +1,4 @@
-"""Pruebas unitarias para el runner del benchmark automatizado (T19)."""
+"""Pruebas unitarias para el runner del benchmark automatizado."""
 
 import socket
 import threading
@@ -41,7 +41,7 @@ def test_execute_modes_consistency_and_t18_stats():
     np.testing.assert_allclose(disp_seq, disp_p2, atol=0.0, rtol=0.0, equal_nan=True)
     np.testing.assert_allclose(disp_seq, disp_dist, atol=0.0, rtol=0.0, equal_nan=True)
 
-    # Verificar metricas de T18
+    # Verificar metricas de instrumentacion
     assert stats_dist is not None
     assert "partition_seconds" in stats_dist
     assert "local_compute_seconds" in stats_dist

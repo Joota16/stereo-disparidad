@@ -1,4 +1,4 @@
-"""T18: comparación exploratoria con métricas internas del maestro ZeroMQ."""
+"""Comparacion preliminar con metricas internas del maestro ZeroMQ."""
 
 import argparse
 import csv
