@@ -29,6 +29,7 @@ Thumbs.db
 !/results/.gitkeep
 /figures/*
 !/figures/.gitkeep
+!/figures/*.png
 
 # Artefactos temporales
 *.log
