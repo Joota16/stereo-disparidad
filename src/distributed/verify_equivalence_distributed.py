@@ -52,7 +52,7 @@ def verify_equivalence_on_pair(
         "d_min": d_min,
         "d_max": d_max,
         "connect": endpoint,
-        "timeout_ms": 30000,
+        "timeout_ms": 120000,
     })
     t_dist = time.perf_counter() - t0_dist
 
